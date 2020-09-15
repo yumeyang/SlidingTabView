@@ -18,7 +18,7 @@ public class SlidingTabView extends HorizontalScrollView {
 
     private GestureDetector mDetector;
     private int mWidth;
-    private boolean mEnableScroll;
+    private boolean mEnableScroll = true;
 
     public SlidingTabView(Context context) {
         this(context, null);
