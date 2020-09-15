@@ -1,4 +1,4 @@
-package com.zhy.adapter;
+package com.zhy.view.sliding;
 
 import android.annotation.SuppressLint;
 import android.view.LayoutInflater;
@@ -54,6 +54,10 @@ public abstract class SlidingTabAdapter extends BaseAdapter {
             convertView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    boolean click = onClickBefore();
+                    if (click) {
+                        return;
+                    }
                     setSelected(position);
                 }
             });
@@ -89,16 +93,20 @@ public abstract class SlidingTabAdapter extends BaseAdapter {
         if (mCallBack == null) {
             return;
         }
-        mCallBack.onClicked(position,selected);
+        mCallBack.onClicked(position, selected);
     }
 
     private CallBack mCallBack;
 
-    public final void setCallBack(CallBack callBack) {
+    protected final void setCallBack(CallBack callBack) {
         this.mCallBack = callBack;
     }
 
-    public interface CallBack {
+    protected interface CallBack {
         void onClicked(int position, View view);
+    }
+
+    protected boolean onClickBefore() {
+        return false;
     }
 }

@@ -1,23 +1,24 @@
-package com.zhy.view;
+package com.zhy.view.sliding;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.database.DataSetObserver;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewTreeObserver;
+import android.view.ViewGroup;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
-
-import com.zhy.adapter.SlidingTabAdapter;
 
 public class SlidingTabView extends HorizontalScrollView {
 
     private LinearLayout mTabContent;
     private SlidingTabAdapter mAdapter;
+
+    private GestureDetector mDetector;
+    private int mWidth;
+    private boolean mEnableScroll;
 
     public SlidingTabView(Context context) {
         this(context, null);
@@ -30,12 +31,11 @@ public class SlidingTabView extends HorizontalScrollView {
     public SlidingTabView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         mTabContent = new LinearLayout(context);
-        addView(mTabContent);
+        addView(mTabContent, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         initListener();
     }
 
     private void initListener() {
-
         mDetector = new GestureDetector(getContext(), new GestureDetector.OnGestureListener() {
             @Override
             public boolean onDown(MotionEvent e) {
@@ -64,6 +64,12 @@ public class SlidingTabView extends HorizontalScrollView {
 
             @Override
             public boolean onFling(MotionEvent begin, MotionEvent end, float velocity_x, float velocity_y) {
+                getListener().onScrollStart();
+
+                if (!mEnableScroll) {
+                    return false;
+                }
+
                 if (begin == null) {
                     return false;
                 }
@@ -94,30 +100,13 @@ public class SlidingTabView extends HorizontalScrollView {
                     selected = selected - 1;
                     mAdapter.setSelected(selected);
                 }
-
+                getListener().onScrollEnd();
                 return false;
-            }
-        });
-
-        mTabContent.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-
-            @Override
-            public void onGlobalLayout() {
-                if (!mIsGlobalLayout) {
-                    mIsGlobalLayout = true;
-                    View first = mTabContent.getChildAt(0);
-                    View last = mTabContent.getChildAt(mTabContent.getChildCount() - 1);
-                    int first_width = first.getWidth();
-                    int last_width = last.getWidth();
-                    int left = getWidth() / 2 - first_width / 2;
-                    int right = getWidth() / 2 - last_width / 2;
-                    mTabContent.setPadding(left, 0, right, 0);
-                }
             }
         });
     }
 
-    protected final void setAdapter(SlidingTabAdapter adapter) {
+    public final void setAdapter(SlidingTabAdapter adapter) {
         mTabContent.removeAllViews();
         if (mAdapter != null) {
             mAdapter.unregisterDataSetObserver(mObserver);
@@ -128,15 +117,15 @@ public class SlidingTabView extends HorizontalScrollView {
         mAdapter.setCallBack(new SlidingTabAdapter.CallBack() {
             @Override
             public void onClicked(final int position, final View view) {
-                if (mIsGlobalLayout) {
+                if (view.getWidth() > 0) {
                     scrollToTab(position);
                 } else {
-                    view.postDelayed(new Runnable() {
+                    view.post(new Runnable() {
                         @Override
                         public void run() {
-                            mAdapter.setSelected(position);
+                            scrollToTab(position);
                         }
-                    }, 100);
+                    });
                 }
             }
         });
@@ -147,7 +136,6 @@ public class SlidingTabView extends HorizontalScrollView {
         //当前item的偏移量
         int left = child.getLeft();
         int width = child.getWidth();
-        Log.e("scrollToTab", "left =" + left + " width = " + width + " count =" + mTabContent.getChildCount());
         //item距离正中间的偏移量
         int offset = (int) ((getWidth() - width) / 2.0f);
         left -= offset;
@@ -168,21 +156,6 @@ public class SlidingTabView extends HorizontalScrollView {
         return mAdapter.getSingleSelected();
     }
 
-    private boolean mIsGlobalLayout;
-
-    private void addItemView() {
-        mTabContent.removeAllViews();
-
-        if (getCount() == 0) {
-            return;
-        }
-
-        for (int i = 0; i < getCount(); i++) {
-            View view = mAdapter.getView(i, null, mTabContent);
-            mTabContent.addView(view);
-        }
-    }
-
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         mDetector.onTouchEvent(ev);
@@ -200,14 +173,67 @@ public class SlidingTabView extends HorizontalScrollView {
         @Override
         public void onChanged() {
             super.onChanged();
-            addItemView();
-        }
-
-        @Override
-        public void onInvalidated() {
-            super.onInvalidated();
+            if (getCount() == 0) {
+                return;
+            }
+            mTabContent.removeAllViews();
+            for (int i = 0; i < getCount(); i++) {
+                View view = mAdapter.getView(i, null, mTabContent);
+                mTabContent.addView(view);
+            }
         }
     };
 
-    private GestureDetector mDetector;
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        super.onLayout(changed, l, t, r, b);
+        measureTabContent();
+    }
+
+    private void measureTabContent() {
+        int width = getWidth();
+        if (width > 0 && mWidth == 0) {
+            mWidth = width;
+            View first = mTabContent.getChildAt(0);
+            View last = mTabContent.getChildAt(mTabContent.getChildCount() - 1);
+            int first_width = first.getWidth();
+            int last_width = last.getWidth();
+            int left = mWidth / 2 - first_width / 2;
+            int right = mWidth / 2 - last_width / 2;
+            mTabContent.setPadding(left, 0, right, 0);
+        }
+    }
+
+    private OnSlidingScrollListener mListener;
+
+    public OnSlidingScrollListener getListener() {
+        if (mListener == null) {
+            mListener = new OnSlidingScrollListener() {
+                @Override
+                public void onScrollStart() {
+
+                }
+
+                @Override
+                public void onScrollEnd() {
+
+                }
+            };
+        }
+        return mListener;
+    }
+
+    public void setListener(OnSlidingScrollListener mListener) {
+        this.mListener = mListener;
+    }
+
+    public interface OnSlidingScrollListener {
+        void onScrollStart();
+
+        void onScrollEnd();
+    }
+
+    public void setEnableScroll(boolean enable) {
+        mEnableScroll = enable;
+    }
 }
