@@ -107,7 +107,6 @@ public class SlidingTabView extends HorizontalScrollView {
     }
 
     public final void setAdapter(SlidingTabAdapter adapter) {
-        mTabContent.removeAllViews();
         if (mAdapter != null) {
             mAdapter.unregisterDataSetObserver(mObserver);
             mAdapter.setCallBack(null);
