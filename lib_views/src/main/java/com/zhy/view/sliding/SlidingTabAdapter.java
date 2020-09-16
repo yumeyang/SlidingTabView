@@ -1,6 +1,5 @@
 package com.zhy.view.sliding;
 
-import android.annotation.SuppressLint;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,11 +10,11 @@ import java.util.ArrayList;
 public abstract class SlidingTabAdapter extends BaseAdapter {
 
     private ArrayList<String> mData = new ArrayList<>();
-    private int mSingleSelected;
+    private int mSelectedPosition;
     private ViewGroup mParentView;
 
-    public int getSingleSelected() {
-        return mSingleSelected;
+    public int getSelectedPosition() {
+        return mSelectedPosition;
     }
 
     public void setData(ArrayList<String> list) {
@@ -43,27 +42,20 @@ public abstract class SlidingTabAdapter extends BaseAdapter {
     }
 
     @Override
-    @SuppressLint("ViewHolder")
     public View getView(final int position, View convertView, final ViewGroup parent) {
-        if (mParentView == null) {
-            mParentView = parent;
-        }
-
-        if (convertView == null) {
-            convertView = LayoutInflater.from(parent.getContext()).inflate(getLayoutID(), null);
-            convertView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    boolean click = onClickBefore();
-                    if (click) {
-                        return;
-                    }
+        mParentView = parent;
+        convertView = LayoutInflater.from(parent.getContext()).inflate(getLayoutID(), null);
+        convertView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                boolean enable = onClickEnable();
+                if (enable) {
                     setSelected(position);
                 }
-            });
-        }
+            }
+        });
 
-        if (mSingleSelected == position) {
+        if (mSelectedPosition == position) {
             onSelectedView(convertView, position);
         } else {
             onNormalView(convertView, position);
@@ -71,7 +63,7 @@ public abstract class SlidingTabAdapter extends BaseAdapter {
         return convertView;
     }
 
-    protected abstract int getLayoutID();
+    public abstract int getLayoutID();
 
     public abstract void onSelectedView(View view, int position);
 
@@ -82,31 +74,31 @@ public abstract class SlidingTabAdapter extends BaseAdapter {
             return;
         }
 
-        View normal = mParentView.getChildAt(mSingleSelected);
-        onNormalView(normal, mSingleSelected);
+        View normal = mParentView.getChildAt(mSelectedPosition);
+        onNormalView(normal, mSelectedPosition);
 
         View selected = mParentView.getChildAt(position);
         onSelectedView(selected, position);
 
-        mSingleSelected = position;
+        mSelectedPosition = position;
 
         if (mCallBack == null) {
             return;
         }
-        mCallBack.onClicked(position, selected);
+        mCallBack.onClickTab(position, selected);
     }
 
     private CallBack mCallBack;
 
-    protected final void setCallBack(CallBack callBack) {
+    public void setCallBack(CallBack callBack) {
         this.mCallBack = callBack;
     }
 
-    protected interface CallBack {
-        void onClicked(int position, View view);
+    public interface CallBack {
+        void onClickTab(int position, View view);
     }
 
-    protected boolean onClickBefore() {
-        return false;
+    public boolean onClickEnable() {
+        return true;
     }
 }
