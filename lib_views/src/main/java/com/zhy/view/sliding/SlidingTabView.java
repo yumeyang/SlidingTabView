@@ -36,16 +36,7 @@ public class SlidingTabView extends HorizontalScrollView {
         mAdapter.setCallBack(new SlidingTabAdapter.CallBack() {
             @Override
             public void onClickTab(final int position, final View view) {
-                if (view.getWidth() > 0) {
-                    scrollToTab(position);
-                } else {
-                    view.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            scrollToTab(position);
-                        }
-                    });
-                }
+                scrollToTab(position);
             }
         });
     }
@@ -127,7 +118,7 @@ public class SlidingTabView extends HorizontalScrollView {
                 return false;
             }
 
-            float min_move = 60;//最小滑动距离
+            float min_move = 50;//最小滑动距离
             float min_velocity = 0;//最小滑动速度
             float begin_x = begin.getX();
             float end_x = end.getX();

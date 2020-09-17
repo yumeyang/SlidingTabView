@@ -3,6 +3,7 @@ package com.zhy.view.sliding;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.BaseAdapter;
 
 import java.util.ArrayList;
@@ -44,17 +45,29 @@ public abstract class SlidingTabAdapter extends BaseAdapter {
     @Override
     public View getView(final int position, View convertView, final ViewGroup parent) {
         mParentView = parent;
-        convertView = LayoutInflater.from(parent.getContext()).inflate(getLayoutID(), null);
-        convertView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                boolean enable = onClickEnable();
-                if (enable) {
-                    setSelected(position);
+        if (convertView == null) {
+            convertView = LayoutInflater.from(parent.getContext()).inflate(getLayoutID(), null);
+            convertView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    if (getCallBack() == null) {
+                        return;
+                    }
+                    if (position == mSelectedPosition) {
+                        getCallBack().onClickTab(position, parent.getChildAt(position));
+                    }
                 }
-            }
-        });
-
+            });
+            convertView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    boolean enable = onClickEnable();
+                    if (enable) {
+                        setSelected(position);
+                    }
+                }
+            });
+        }
         if (mSelectedPosition == position) {
             onSelectedView(convertView, position);
         } else {
@@ -73,22 +86,29 @@ public abstract class SlidingTabAdapter extends BaseAdapter {
         if (mParentView == null || position > mParentView.getChildCount() - 1) {
             return;
         }
-
-        View normal = mParentView.getChildAt(mSelectedPosition);
-        onNormalView(normal, mSelectedPosition);
-
+        int old_position = mSelectedPosition;
+        View normal = mParentView.getChildAt(old_position);
         View selected = mParentView.getChildAt(position);
-        onSelectedView(selected, position);
 
         mSelectedPosition = position;
 
-        if (mCallBack == null) {
-            return;
-        }
-        mCallBack.onClickTab(position, selected);
+        onNormalView(normal, old_position);
+        onSelectedView(selected, position);
     }
 
     private CallBack mCallBack;
+
+    public CallBack getCallBack() {
+        if (mCallBack == null) {
+            mCallBack = new CallBack() {
+                @Override
+                public void onClickTab(int position, View view) {
+
+                }
+            };
+        }
+        return mCallBack;
+    }
 
     public void setCallBack(CallBack callBack) {
         this.mCallBack = callBack;
