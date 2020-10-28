@@ -4,4 +4,6 @@
 
 使用方法
 
+implementation 'com.github.yumeyang:SlidingTabView:1.1.0'
+
 
